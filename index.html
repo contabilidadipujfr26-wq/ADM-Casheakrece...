@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ContabilASM – Control Financiero y Deudas</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { background-color: #0b0f19; color: #f3f4f6; font-family: system-ui, -apple-system, sans-serif; }
+        .card { background: #111827; border: 1px solid #1f2937; border-radius: 1rem; }
+        .gold-text { color: #f59e0b; }
+        .gold-bg { background-color: #f59e0b; }
+    </style>
+</head>
+<body class="pb-16">
+
+    <!-- Header Fijo -->
+    <header class="p-4 border-b border-gray-800 bg-gray-900/90 backdrop-blur sticky top-0 z-50 flex justify-between items-center shadow-lg">
+        <div class="flex items-center space-x-2">
+            <div class="p-2 gold-bg rounded-lg text-black font-extrabold text-sm">ASM</div>
+            <div>
+                <h1 class="font-bold text-base md:text-lg text-white leading-tight">ContabilASM</h1>
+                <p class="text-[10px] md:text-xs text-gray-400">Control Financiero & Deudas</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2 bg-gray-800/80 px-2.5 py-1.5 rounded-lg border border-gray-700">
+            <span class="text-xs text-gray-400 font-medium">Tasa BCV:</span>
+            <span class="text-xs gold-text font-bold">Bs.</span>
+            <input type="number" step="0.01" id="tasa-bcv" class="w-20 bg-gray-900 text-white font-bold text-xs p-1 rounded text-right focus:outline-none focus:ring-1 focus:ring-yellow-500" value="36.50">
+        </div>
+    </header>
+
+    <main class="p-3 md:p-6 max-w-5xl mx-auto space-y-6">
+
+        <!-- Barra de Herramientas / Respaldo -->
+        <div class="bg-blue-950/40 border border-blue-800/50 p-3 rounded-xl flex flex-col md:flex-row items-center justify-between gap-2 text-xs text-blue-300">
+            <div class="flex items-center space-x-2">
+                <i data-lucide="info" class="w-4 h-4 text-blue-400 shrink-0"></i>
+                <span>Los datos se guardan de forma segura en tu navegador (localStorage).</span>
+            </div>
+            <div class="flex space-x-1 shrink-0">
+                <button onclick="exportarJSON()" class="px-2 py-1 bg-blue-900/60 hover:bg-blue-800 border border-blue-700 rounded text-white flex items-center gap-1 text-[11px]"><i data-lucide="download" class="w-3 h-3"></i> JSON</button>
+                <button onclick="exportarCSV()" class="px-2 py-1 bg-emerald-900/60 hover:bg-emerald-800 border border-emerald-700 rounded text-white flex items-center gap-1 text-[11px]"><i data-lucide="file-spreadsheet" class="w-3 h-3"></i> CSV</button>
+                <label class="px-2 py-1 bg-yellow-900/60 hover:bg-yellow-800 border border-yellow-700 rounded text-white flex items-center gap-1 text-[11px] cursor-pointer">
+                    <i data-lucide="upload" class="w-3 h-3"></i> Importar
+                    <input type="file" id="input-importar" accept=".json" class="hidden" onchange="importarJSON(event)">
+                </label>
+            </div>
+        </div>
+
+        <!-- 1. DASHBOARD GLOBAL -->
+        <section class="card p-4 md:p-5 shadow-md">
+            <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <i data-lucide="layout-dashboard" class="w-4 h-4 gold-text"></i> Dashboard Financiero General
+            </h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="bg-gray-900/80 p-3.5 rounded-xl border border-gray-800">
+                    <p class="text-[11px] text-gray-400">Deudas / Cuotas Pendientes</p>
+                    <p id="dash-deudas-usd" class="text-lg md:text-xl font-bold text-rose-500 mt-0.5">$0.00</p>
+                    <p id="dash-deudas-ves" class="text-[10px] text-gray-500">Bs. 0.00</p>
+                </div>
+                <div class="bg-gray-900/80 p-3.5 rounded-xl border border-gray-800">
+                    <p class="text-[11px] text-gray-400">Total Inversiones</p>
+                    <p id="dash-invertido-usd" class="text-lg md:text-xl font-bold text-white mt-0.5">$0.00</p>
+                    <p id="dash-invertido-ves" class="text-[10px] text-gray-500">Bs. 0.00</p>
+                </div>
+                <div class="bg-gray-900/80 p-3.5 rounded-xl border border-gray-800">
+                    <p class="text-[11px] text-gray-400">Ganancias / Neto</p>
+                    <p id="dash-neto-usd" class="text-lg md:text-xl font-bold text-emerald-400 mt-0.5">$0.00</p>
+                    <p id="dash-neto-ves" class="text-[10px] text-gray-500">Bs. 0.00</p>
+                </div>
+                <div class="bg-gray-900/80 p-3.5 rounded-xl border border-gray-800">
+                    <p class="text-[11px] text-gray-400">Balance Global Neto</p>
+                    <p id="dash-balance-usd" class="text-lg md:text-xl font-bold gold-text mt-0.5">$0.00</p>
+                    <p id="dash-balance-ves" class="text-[10px] text-gray-500">Bs. 0.00</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. GESTIÓN DE BANCOS / APPS Y COMERCIOS -->
+        <section class="card p-4">
+            <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                <i data-lucide="landmark" class="w-4 h-4 gold-text"></i> Bancos, Apps y Comercios (Cashea, Bancos, etc.)
+            </h3>
+            <div class="flex gap-2 mb-3">
+                <input type="text" id="nombre-entidad" placeholder="Ej. Cashea, Banco de Venezuela, AlGiorno..." class="flex-1 p-2 bg-gray-900 border border-gray-800 rounded-lg text-xs text-white focus:outline-none focus:border-yellow-500">
+                <button onclick="agregarEntidad()" class="px-4 py-2 gold-bg font-bold text-black text-xs rounded-lg hover:bg-yellow-600 transition">Agregar Entidad</button>
+            </div>
+            <div id="lista-entidades" class="flex flex-wrap gap-2">
+                <!-- Se generan dinámicamente -->
+            </div>
+        </section>
+
+        <!-- 3. FORMULARIOS: REGISTRAR DEUDA / CUOTAS O INVERSIÓN -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <!-- Registrar Deuda / Cuota (Estilo Cashea / Crédito) -->
+            <section class="card p-4">
+                <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                    <i data-lucide="credit-card" class="w-4 h-4 text-rose-500"></i> Registrar Deuda o Cuota
+                </h3>
+                <form id="form-deuda" class="space-y-3">
+                    <div>
+                        <label class="text-[11px] text-gray-400 block mb-1">Entidad / Comercio / Banco</label>
+                        <select id="deuda-entidad" class="w-full p-2 bg-gray-900 border border-gray-800 rounded-lg text-xs text-white focus:outline-none focus:border-yellow-500" required>
+                            <!-- Dinámico -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[11px] text-gray-400 block mb-1">Concepto / Descripción</label>
+                        <input type="text" id="deuda-concepto" placeholder="Ej. Compra AlGiorno / Préstamo" class="w-full p-2 bg-gray-900 border border-gray-800 rounded-lg text-xs text-white focus:outline-none focus:border-yellow-500" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[11px] text-gray-400 block mb-1">Monto Total ($)</label>
+                            <input type="number" step="0.01" id="deuda-monto" placeholder="39.61" class="w-full p-2 bg-gray-900 border border-gray-800 rounded-lg text-xs text-white focus:outline-none focus:border-yellow-500" required>
+                        </div>
+                        <div>
+                            <label class="text-[11px] text-gray-400 block mb-1">Fecha Vencimiento</label>
+                            <input type="date" id="deuda-fecha" class="w-full p-2 bg-gray-900 border border-gray-800 rounded-lg text-xs text-white focus:outline-none focus:border-yellow-500" required>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[11px] text-gray-400 block mb-1">Cuotas Totales</label>
+                            <input type="number" id="deuda-cuotas-total" value="1" min="1" class="w-full p-2 bg-gray-900 border border-gray-800 rounded-lg text-xs text-white focus:outline-none focus:border-yellow-500" required>
+                        </div>
+                        <div>
+                            <label class="text-[11px] text-gray-400 block mb-1">Cuotas Pagadas</label>
+                            <input type="number" id="deuda-cuotas-pagadas" value="0" min="0" class="w-full p-2 bg-gray-900 border border-gray-800 rounded-lg text-xs text-white focus:outline-none focus:border-yellow-500" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full py-2 bg-rose-600 hover:bg-rose-500 font-bold text-white text-xs rounded-lg transition mt-1">Registrar Deuda</button>
+                </form>
+            </section>
+
+            <!-- Registrar Proyecto / Inversión -->
+            <section class="card p-4">
+                <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                    <i data-lucide="trending-up" class="w-4 h-4 gold-text"></i> Registrar Inversión / Proyecto
+                </h3>
+                <form id="form-proyecto" class="space-y-3">
+                    <div>
+                        <label class="text-[11px] text-gray-400 block mb-1">Nombre del Proyecto</label>
+                        <input type="text" id="proj-nombre" placeholder="Ej. Nodo Concilium / Staking" class="w-full p-2 bg-gray-900 border border-gray-800 rounded-lg text-xs text-white focus:outline-none focus:border-yellow-500" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[11px] text-gray-400 block mb-1">Tipo</label>
+                            <select id="proj-tipo" class="w-full p-2 bg-gray-900 border border-gray-800 rounded-lg text-xs text-white focus:outline-none focus:border-yellow-500">
+                                <option value="Nodo">Nodo de Inversión</option>
+                                <option value="Staking">Staking</option>
+                                <option value="Farming">Farming</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[11px] text-gray-400 block mb-1">Inversión ($)</label>
+                            <input type="number" step="0.01" id="proj-inversion" placeholder="100.00" class="w-full p-2 bg-gray-900 border border-gray-800 rounded-lg text-xs text-white focus:outline-none focus:border-yellow-500" required>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[11px] text-gray-400 block mb-1">% ROI Estimado</label>
+                            <input type="number" step="0.1" id="proj-roi" placeholder="9.0" class="w-full p-2 bg-gray-900 border border-gray-800 rounded-lg text-xs text-white focus:outline-none focus:border-yellow-500" required>
+                        </div>
+                        <div>
+                            <label class="text-[11px] text-gray-400 block mb-1">Fecha Inicio</label>
+                            <input type="date" id="proj-inicio" class="w-full p-2 bg-gray-900 border border-gray-800 rounded-lg text-xs text-white focus:outline-none focus:border-yellow-500" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full py-2 gold-bg font-bold text-black text-xs rounded-lg hover:bg-yellow-600 transition mt-1">Guardar Inversión</button>
+                </form>
+            </section>
+
+        </div>
+
+        <!-- 4. LISTADO Y CONTROL DE DEUDAS / CUOTAS -->
+        <section class="space-y-4">
+            <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                <i data-lucide="list-checks" class="w-4 h-4 text-rose-500"></i> Control de Deudas y Cuotas Activas
+            </h2>
+            <div id="contenedor-deudas" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <!-- Se llena dinámicamente -->
+            </div>
+        </section>
+
+        <!-- 5. LISTADO DE PROYECTOS E INVERSIONES -->
+        <section class="space-y-4">
+            <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                <i data-lucide="layers" class="w-4 h-4 gold-text"></i> Detalle de Inversiones
+            </h2>
+            <div id="contenedor-proyectos" class="space-y-3">
+                <!-- Se llena dinámicamente -->
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        const CLAVE_STORAGE = 'contabilasm_v3';
+
+        let appData = {
+            tasaBCV: 36.50,
+            entidades: ['Cashea', 'Banco de Venezuela', 'AlGiorno', 'Hipermercado La Redoma'],
+            deudas: [],
+            proyectos: []
+        };
+
+        function cargarDatos() {
+            const guardado = localStorage.getItem(CLAVE_STORAGE);
+            if (guardado) {
+                try {
+                    appData = JSON.parse(guardado);
+                } catch(e) {
+                    console.error("Error al cargar datos", e);
+                }
+            }
+            if (!appData.tasaBCV) appData.tasaBCV = 36.50;
+            document.getElementById('tasa-bcv').value = appData.tasaBCV;
+            renderizar();
+        }
+
+        function guardarDatos() {
+            localStorage.setItem(CLAVE_STORAGE, JSON.stringify(appData));
+            renderizar();
+        }
+
+        document.getElementById('tasa-bcv').addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            appData.tasaBCV = isNaN(val) ? 0 : val;
+            guardarDatos();
+        });
+
+        function formatoUSD(val) {
+            return '$' + Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function formatoVES(valUSD, tasa) {
+            const ves = Number(valUSD) * Number(tasa);
+            return 'Bs. ' + ves.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function hoyISO() {
+            const now = new Date();
+            return now.toISOString().split('T')[0];
+        }
+
+        // --- GESTIÓN DE ENTIDADES ---
+        function agregarEntidad() {
+            const input = document.getElementById('nombre-entidad');
+            const nombre = input.value.trim();
+            if (!nombre) return;
+            if (!appData.entidades.includes(nombre)) {
+                appData.entidades.push(nombre);
+                input.value = '';
+                guardarDatos();
+            } else {
+                alert('Esta entidad ya existe.');
+            }
+        }
+
+        function eliminarEntidad(nombre) {
+            if (confirm(`¿Eliminar la entidad "${nombre}"?`)) {
+                appData.entidades = appData.entidades.filter(e => e !== nombre);
+                guardarDatos();
+            }
+        }
+
+        // --- GESTIÓN DE DEUDAS ---
+        document.getElementById('form-deuda').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const entidad = document.getElementById('deuda-entidad').value;
+            const concepto = document.getElementById('deuda-concepto').value.trim();
+            const montoTotal = parseFloat(document.getElementById('deuda-monto').value);
+            const fecha = document.getElementById('deuda-fecha').value;
+            const cuotasTotales = parseInt(document.getElementById('deuda-cuotas-total').value);
+            const cuotasPagadas = parseInt(document.getElementById('deuda-cuotas-pagadas').value);
+
+            if (!entidad || !concepto || isNaN(montoTotal) || montoTotal <= 0) return;
+
+            appData.deudas.push({
+                id: Date.now(),
+                entidad,
+                concepto,
+                montoTotal,
+                fecha,
+                cuotasTotales,
+                cuotasPagadas
+            });
+
+            document.getElementById('form-deuda').reset();
+            document.getElementById('deuda-fecha').value = hoyISO();
+            guardarDatos();
+        });
+
+        function pagarCuota(id) {
+            const deuda = appData.deudas.find(d => d.id === id);
+            if (deuda && deuda.cuotasPagadas < deuda.cuotasTotales) {
+                deuda.cuotasPagadas++;
+                guardarDatos();
+            }
+        }
+
+        function eliminarDeuda(id) {
+            if (confirm('¿Desea eliminar esta deuda o crédito?')) {
+                appData.deudas = appData.deudas.filter(d => d.id !== id);
+                guardarDatos();
+            }
+        }
+
+        // --- GESTIÓN DE PROYECTOS ---
+        document.getElementById('form-proyecto').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nombre = document.getElementById('proj-nombre').value.trim();
+            const tipo = document.getElementById('proj-tipo').value;
+            const inversion = parseFloat(document.getElementById('proj-inversion').value);
+            const roi = parseFloat(document.getElementById('proj-roi').value);
+            const inicio = document.getElementById('proj-inicio').value;
+
+            if (!nombre || isNaN(inversion) || inversion <= 0) return;
+
+            appData.proyectos.push({
+                id: Date.now(),
+                nombre,
+                tipo,
+                inversion,
+                roi,
+                inicio
+            });
+
+            document.getElementById('form-proyecto').reset();
+            document.getElementById('proj-inicio').value = hoyISO();
+            guardarDatos();
+        });
+
+        function eliminarProyecto(id) {
+            if (confirm('¿Eliminar este proyecto de inversión?')) {
+                appData.proyectos = appData.proyectos.filter(p => p.id !== id);
+                guardarDatos();
+            }
+        }
+
+        // --- RENDERIZADO GLOBAL ---
+        function renderizar() {
+            const tasa = appData.tasaBCV || 36.50;
+
+            // Renderizar Entidades Select y Badges
+            const selectEntidad = document.getElementById('deuda-entidad');
+            selectEntidad.innerHTML = appData.entidades.map(ent => `<option value="${ent}">${ent}</option>`).join('');
+
+            const contenedorEntidades = document.getElementById('lista-entidades');
+            contenedorEntidades.innerHTML = appData.entidades.map(ent => `
+                <div class="bg-gray-900 border border-gray-800 px-3 py-1 rounded-lg text-xs flex items-center gap-2 text-gray-300">
+                    <span>${ent}</span>
+                    <button onclick="eliminarEntidad('${ent}')" class="text-gray-500 hover:text-rose-40
